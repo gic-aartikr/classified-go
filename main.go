@@ -1,19 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"classified/dao"
-	"classified/model"
+	"classified/modelData"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const tokenIdForAdmin = "tokenAdmin123456783"
 const tokenIdForPosters = "tokenPosters562348"
 
+var buf []bytes.Buffer
 var cla = dao.ClassifiedDAO{}
 
 // var cat = categoryService.CategoryDAO{}
@@ -36,7 +39,7 @@ func addClassifiedData(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "Invalid method")
 	}
 
-	var classified model.Classified
+	var classified modelData.Classified
 
 	if err := json.NewDecoder(r.Body).Decode(&classified); err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid request")
@@ -60,7 +63,7 @@ func addCategoryRecord(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "Invalid method")
 	}
 
-	var classified model.Classified
+	var classified modelData.Classified
 
 	if err := json.NewDecoder(r.Body).Decode(&classified); err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid request")
@@ -85,7 +88,7 @@ func searchClassifiedData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var cl model.Search
+	var cl modelData.Search
 
 	if err := json.NewDecoder(r.Body).Decode(&cl); err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid request")
@@ -108,6 +111,37 @@ func searchClassifiedData(w http.ResponseWriter, r *http.Request) {
 		err := searchdocs.Write(w)
 		fmt.Println(err)
 
+	}
+
+}
+
+func convertClassifiedDataToPDF(w http.ResponseWriter, r *http.Request) {
+
+	defer r.Body.Close()
+
+	if r.Method != "POST" {
+		respondWithError(w, http.StatusBadRequest, "Invalid method")
+		return
+	}
+
+	var cl modelData.Search
+
+	if err := json.NewDecoder(r.Body).Decode(&cl); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request")
+		return
+	}
+	// if cl.City == "" {
+	// 	respondWithError(w, http.StatusBadRequest, "Please provide city for search")
+	// 	return
+	// }
+
+	if pdfData, fileName, err := cla.ConvertDatatoPDF(cl); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("%v", err))
+	} else {
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Header().Set("Content-Disposition", "attachment; filename="+fileName+".pdf")
+		w.Header().Set("Content-Transfer-Encoding", "binary")
+		http.ServeContent(w, r, "Workbook.xlxs", time.Now(), bytes.NewReader(pdfData))
 	}
 
 }
@@ -135,7 +169,7 @@ func addRecord(w http.ResponseWriter, r *http.Request) {
 	segments := strings.Split(path, "/")
 	field := segments[len(segments)-1]
 	fmt.Println("fieldRecord:", field)
-	var classified []model.Classified
+	var classified []modelData.Classified
 
 	if err := json.NewDecoder(r.Body).Decode(&classified); err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("%v", err))
@@ -200,7 +234,7 @@ func updateRecord(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// fmt.Println("idRecord:", id)
-	var cl model.Classified
+	var cl modelData.Classified
 
 	err := json.NewDecoder(r.Body).Decode(&cl)
 
@@ -242,7 +276,7 @@ func addCategoryData(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "Invalid method")
 	}
 
-	var category model.Category
+	var category modelData.Category
 
 	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid request")
@@ -299,7 +333,7 @@ func updateDataInCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var data model.Category
+	var data modelData.Category
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("%v", err))
@@ -379,6 +413,7 @@ func main() {
 	http.HandleFunc("/delete-data/", deleteDataInCategory)
 	http.HandleFunc("/search-by-category", searchByCategory)
 	http.HandleFunc("/update-data-category/", updateDataInCategory)
+	http.HandleFunc("/convert-pdf-data/", convertClassifiedDataToPDF)
 	fmt.Println("Excecuted Main Method")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
