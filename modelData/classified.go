@@ -1,8 +1,6 @@
 package modelData
 
 import (
-	"fmt"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -29,11 +27,11 @@ type Category struct {
 	Status       string             `bson:"status,omitempty" json:"status,omitempty"`
 }
 
-type SearchData struct {
-	Key   string `bson:"key,omitempty" json:"key,omitempty"`
-	Value string `bson:"value,omitempty" json:"value,omitempty"`
-}
+// type SearchData struct {
+// 	Key   string `bson:"key,omitempty" json:"key,omitempty"`
+// 	Value string `bson:"value,omitempty" json:"value,omitempty"`
+// }
 
-func (c Classified) String() string {
-	return fmt.Sprintf("%s age %d says %q", c.Address, c.City, c.ContactcNo, c.Latitude, c.Title, c.User, c.Website, c.CategoryId, c.ID)
-}
+// func (c Classified) String() string {
+// 	return fmt.Sprintf("%s age %d says %q", c.Address, c.City, c.ContactcNo, c.Latitude, c.Title, c.User, c.Website, c.CategoryId, c.ID)
+// }
